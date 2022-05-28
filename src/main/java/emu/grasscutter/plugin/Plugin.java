@@ -1,13 +1,27 @@
 package emu.grasscutter.plugin;
 
 import emu.grasscutter.Grasscutter;
+import emu.grasscutter.plugin.api.ServerHook;
 import emu.grasscutter.server.game.GameServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.InputStream;
+import java.net.URLClassLoader;
+
+import static emu.grasscutter.Configuration.*;
 
 /**
  * The base class for all plugins to extend.
  */
 public abstract class Plugin {
+    private final ServerHook server = ServerHook.getInstance();
+    
     private PluginIdentifier identifier;
+    private URLClassLoader classLoader;
+    private File dataFolder;
+    private Logger logger;
 
     /**
      * This method is reflected into.
@@ -15,10 +29,21 @@ public abstract class Plugin {
      * Set plugin variables.
      * @param identifier The plugin's identifier.
      */
-    private void initializePlugin(PluginIdentifier identifier) {
-        if(this.identifier == null)
-            this.identifier = identifier;
-        else Grasscutter.getLogger().warn(this.identifier.name + " had a reinitialization attempt.");
+    private void initializePlugin(PluginIdentifier identifier, URLClassLoader classLoader) {
+        if(this.identifier != null) {
+            Grasscutter.getLogger().warn(this.identifier.name + " had a reinitialization attempt.");
+            return;
+        }
+        
+        this.identifier = identifier;
+        this.classLoader = classLoader;
+        this.dataFolder = new File(PLUGIN(), identifier.name);
+        this.logger = LoggerFactory.getLogger(identifier.name);
+        
+        if(!this.dataFolder.exists() && !this.dataFolder.mkdirs()) {
+            Grasscutter.getLogger().warn("Failed to create plugin data folder for " + this.identifier.name);
+            return;
+        }
     }
 
     /**
@@ -55,7 +80,40 @@ public abstract class Plugin {
      * @return A server instance.
      */
     public final GameServer getServer() {
-        return Grasscutter.getGameServer();
+        return this.server.getGameServer();
+    }
+
+    /**
+     * Returns an input stream for a resource in the JAR file.
+     * @param resourceName The name of the resource.
+     * @return An input stream.
+     */
+    public final InputStream getResource(String resourceName) {
+        return this.classLoader.getResourceAsStream(resourceName);
+    }
+
+    /**
+     * Returns a directory where plugins can store data files.
+     * @return A directory on the file system.
+     */
+    public final File getDataFolder() {
+        return this.dataFolder;
+    }
+
+    /**
+     * Returns the server hook.
+     * @return A server hook singleton.
+     */
+    public final ServerHook getHandle() {
+        return this.server;
+    }
+
+    /**
+     * Returns the plugin's logger.
+     * @return A SLF4J logger.
+     */
+    public final Logger getLogger() {
+        return this.logger;
     }
     
     /* Called when the plugin is first loaded. */
