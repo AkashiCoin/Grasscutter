@@ -1,27 +1,9 @@
 name: "Build"
 on:
-    # 手动触发事件
-  workflow_dispatch:
-    inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
-      tags:
-        description: 'Test scenario tags'
   push:
-    paths:
-      - "**.java"
     branches:
       - "stable"
       - "development"
-  pull_request:
-    paths:
-      - "**.java"
-    types:
-      - opened
-      - synchronize
-      - reopened
 jobs:
   Build-Server-Jar:
     runs-on: ubuntu-latest
